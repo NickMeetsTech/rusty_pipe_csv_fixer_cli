@@ -2,19 +2,17 @@
 mod fixer;
 
 fn main() {
-    // Let's pretend we have a few rows of data to check
-    let rows_to_check = [
-        "header1,header2,header3",
-        "data1,data2,data3",
-        "data1,,data3", // A row with a missing field
-        "",             // An empty row
-    ];
+    println!("--- Running Normalizer ---");
+
+    // Create a mutable, owned String
+    let mut row1 = String::from("data1,DATA2,data3");
     
-    // We use a `for` loop to check each one!
-    // .iter().enumerate() is a standard way to get both the
-    // index (0, 1, 2...) and the data in a loop.
-    for (i, row) in rows_to_check.iter().enumerate() {
-        // `i` is a `usize`, we add 1 to make it a 1-based row number
-        fixer::inspect_row((i + 1) as u32, row);
-    }
+    println!("Before: {}", row1);
+
+    // Pass a mutable borrow to our fixer
+    fixer::normalize_row(&mut row1);
+
+    println!("After:  {}", row1);
+    println!("--------------------------");
 }
+
