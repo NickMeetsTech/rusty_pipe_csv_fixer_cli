@@ -28,19 +28,30 @@ pub fn fix_csv() {
     println!("Calling the fix_csv function!");
 }
 
-// Modify inspect_row to return a RowStatus
-pub fn inspect_row(row_number: u32, row_data: &str) -> RowStatus {
+// Modify inspect_row to be smarter
+pub fn inspect_row(
+    row_number: u32,
+    row_data: &str,
+    expected_fields: usize, // <-- ADD THIS
+) -> RowStatus {
     if row_data.is_empty() {
-        // Return the Empty variant
-        RowStatus::Empty
-    } else if row_data.len() < 10 {
-        // Return the Broken variant
+        return RowStatus::Empty; // Use `return` for an early exit
+    }
+
+    // This is our new logic!
+    // .split(',') creates an iterator of string slices
+    // .count() counts how many pieces there are
+    let field_count = row_data.split(',').count();
+
+    if field_count != expected_fields {
         RowStatus::Broken {
             row_num: row_number,
-            reason: String::from("Row is too short"),
+            reason: format!(
+                "Mismatched field count. Expected {}, got {}",
+                expected_fields, field_count
+            ),
         }
     } else {
-        // Return the Valid variant
         RowStatus::Valid
     }
 }

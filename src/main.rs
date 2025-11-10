@@ -1,24 +1,34 @@
 // In src/main.rs
 mod fixer;
-// Bring both CsvConfig and RowStatus into scope
-use fixer::{CsvConfig, RowStatus}; 
+use fixer::{CsvConfig, RowStatus};
 
 fn main() {
-    let rows_to_check = [
-        "header1,header2,header3",
-        "data1,data2,data3",
-        "data1,,data3", // This will be "Broken"
-        "",             // This will be "Empty"
+    let rows_to_check = vec![
+        "header1,header2,header3", // Expected: 3
+        "data1,data2,data3",       // 3 -> Valid
+        "data1,,data3",            // 3 -> Valid
+        "data1,data2",             // 2 -> Broken!
+        "",                        // 0 -> Empty!
+        "data1,data2,data3,data4", // 4 -> Broken!
     ];
-    
+
     let mut valid_rows = 0;
     let mut broken_rows = 0;
 
+    // 1. Get the expected field count from the header
+    // We use .get(0) to safely access the first element
+    let header = rows_to_check.get(0).expect("No header row found!");
+    let expected_fields = header.split(',').count();
+    println!("--- Header has {} fields ---", expected_fields);
+
+    // 2. Loop and inspect the rows
+    // .iter().enumerate() gives us (index, &data)
     for (i, row) in rows_to_check.iter().enumerate() {
         let row_num = (i + 1) as u32;
-        let status = fixer::inspect_row(row_num, row);
 
-        // Use `match` to handle the returned enum
+        // Pass the expected_fields count to our function
+        let status = fixer::inspect_row(row_num, row, expected_fields);
+
         match status {
             RowStatus::Valid => {
                 println!("Row {} is Valid.", row_num);
@@ -33,8 +43,9 @@ fn main() {
             }
         }
     }
-    
+
     println!("--- Summary ---");
+    println!("Total Rows Checked: {}", rows_to_check.len());
     println!("Total Valid: {}", valid_rows);
     println!("Total Broken: {}", broken_rows);
 }
