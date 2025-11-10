@@ -1,18 +1,17 @@
 // In src/main.rs
 mod fixer;
 
+// We need to "use" the struct to bring it into scope
+use fixer::CsvConfig;
+
 fn main() {
-    println!("--- Running Normalizer ---");
+    // Create an instance of our config
+    let config = CsvConfig::new(
+        String::from("input.csv"),
+        String::from("output.csv"),
+        ','
+    );
 
-    // Create a mutable, owned String
-    let mut row1 = String::from("data1,DATA2,data3");
-    
-    println!("Before: {}", row1);
-
-    // Pass a mutable borrow to our fixer
-    fixer::normalize_row(&mut row1);
-
-    println!("After:  {}", row1);
-    println!("--------------------------");
+    // Let's try to print it...
+    println!("Config: {:#?}", config); // This will FAIL!
 }
-
