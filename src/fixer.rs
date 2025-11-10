@@ -28,17 +28,20 @@ pub fn fix_csv() {
     println!("Calling the fix_csv function!");
 }
 
-// NEW FUNCTION
-pub fn inspect_row(row_number: u32, row_data: &str) {
-    println!("Checking row {}: '{}'", row_number, row_data);
-
+// Modify inspect_row to return a RowStatus
+pub fn inspect_row(row_number: u32, row_data: &str) -> RowStatus {
     if row_data.is_empty() {
-        println!("  -> Result: This row is EMPTY.");
+        // Return the Empty variant
+        RowStatus::Empty
     } else if row_data.len() < 10 {
-        // .len() returns the length in bytes
-        println!("  -> Result: This row is very short. (<10 bytes)");
+        // Return the Broken variant
+        RowStatus::Broken {
+            row_num: row_number,
+            reason: String::from("Row is too short"),
+        }
     } else {
-        println!("  -> Result: This row looks okay for now.");
+        // Return the Valid variant
+        RowStatus::Valid
     }
 }
 
@@ -55,6 +58,17 @@ pub fn get_file_summary() -> (u32, &'static str) {
     
     (row_count, header) // Return the tuple
 }
+
+#[derive(Debug)] // Add Debug so we can print it
+pub enum RowStatus {
+    Valid,
+    Empty,
+    Broken {
+        row_num: u32,
+        reason: String,
+    }, // A variant that holds a struct-like
+}
+
 
 // This function takes a mutable reference to a String
 // and modifies it in-place.
