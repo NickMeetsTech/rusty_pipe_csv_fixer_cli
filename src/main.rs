@@ -1,3 +1,5 @@
+mod fixer;
+
 fn main() {
-    println!("Hello, world!");
+    fixer::fix_csv();
 }
