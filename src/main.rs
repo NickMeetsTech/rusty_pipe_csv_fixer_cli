@@ -1,32 +1,28 @@
 // In src/main.rs
+use std::fs; // <-- Add this
 mod fixer;
 use fixer::{CsvConfig, RowStatus};
 
 fn main() {
-    let rows_to_check = vec![
-        "header1,header2,header3", // Expected: 3
-        "data1,data2,data3",       // 3 -> Valid
-        "data1,,data3",            // 3 -> Valid
-        "data1,data2",             // 2 -> Broken!
-        "",                        // 0 -> Empty!
-        "data1,data2,data3,data4", // 4 -> Broken!
-    ];
+    // 1. Read the file into one giant String
+    let file_contents = fs::read_to_string("input.csv")
+        .expect("Failed to read input.csv. Make sure it's in the root folder.");
 
     let mut valid_rows = 0;
     let mut broken_rows = 0;
 
-    // 1. Get the expected field count from the header
-    // We use .get(0) to safely access the first element
-    let header = rows_to_check.get(0).expect("No header row found!");
+    // 2. Get the expected field count from the *first* line
+    // .lines() returns an iterator. .next() gets the first item from it.
+    let header = file_contents.lines().next().expect("File is empty, no header row found!");
     let expected_fields = header.split(',').count();
     println!("--- Header has {} fields ---", expected_fields);
 
-    // 2. Loop and inspect the rows
-    // .iter().enumerate() gives us (index, &data)
-    for (i, row) in rows_to_check.iter().enumerate() {
+    // 3. Loop over *all* lines (including the header again)
+    // The .lines() iterator works directly in a for loop!
+    for (i, row) in file_contents.lines().enumerate() {
         let row_num = (i + 1) as u32;
 
-        // Pass the expected_fields count to our function
+        // Our fixer logic doesn't need to change at all!
         let status = fixer::inspect_row(row_num, row, expected_fields);
 
         match status {
@@ -45,7 +41,7 @@ fn main() {
     }
 
     println!("--- Summary ---");
-    println!("Total Rows Checked: {}", rows_to_check.len());
+    // We can't use .len() on an iterator. Let's just count.
     println!("Total Valid: {}", valid_rows);
     println!("Total Broken: {}", broken_rows);
 }
