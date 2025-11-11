@@ -1,63 +1,75 @@
+// In src/main.rs
 use std::env;
-use std::fs;
-use std::error::Error; // <-- Import the Error trait
+use std::error::Error;
+// We no longer need fs, the csv crate handles file I/O
+// We no longer need RowStatus
 
 mod fixer;
-use fixer::{CsvConfig, RowStatus};
+use fixer::CsvConfig;
 
-// 1. Change the signature of main
 fn main() -> Result<(), Box<dyn Error>> {
-    // --- 1. GET ARGUMENTS ---
     let args: Vec<String> = env::args().collect();
-
-    // 2. Use `?` to handle the result from CsvConfig::new
     let config = CsvConfig::new(&args)?;
 
     println!("Reading from: {}", config.input_file);
     println!("Writing to: {}", config.output_file);
 
-    // --- 2. READ ---
-    // 3. Use `?` instead of .expect()
-    let file_contents = fs::read_to_string(&config.input_file)?;
+    // Use the `csv` crate's Reader
+    let mut reader = csv::Reader::from_path(&config.input_file)?;
+    
+    // Use the `csv` crate's Writer
+    let mut writer = csv::Writer::from_path(&config.output_file)?;
 
-    let mut fixed_rows: Vec<&str> = Vec::new();
+    // 1. Get the headers
+    // .headers() gives us a &StringRecord
+    let headers = reader.headers()?.clone();
+    let expected_fields = headers.len();
+    
+    // Write the headers to the output file first
+    writer.write_record(&headers)?;
 
-    // 4. Handle the header with `?` as well (using .ok_or())
-    let header = file_contents.lines()
-        .next()
-        .ok_or("File is empty, no header row found!")?; // Converts Option to Result
-        
-    let expected_fields = header.split(',').count();
     println!("--- Header has {} fields ---", expected_fields);
 
-    // --- 3. PROCESS ---
-    for (i, row) in file_contents.lines().enumerate() {
-        let row_num = (i + 1) as u32;
-        let status = fixer::inspect_row(row_num, row, expected_fields);
+    let mut valid_rows = 0;
+    let mut broken_rows = 0;
 
-        match status {
-            RowStatus::Valid => {
-                println!("Row {} is Valid. Keeping.", row_num);
-                fixed_rows.push(row); 
+    // 2. Iterate over each record
+    // .records() gives us an iterator of Result<StringRecord>
+    for (i, result) in reader.records().enumerate() {
+        let row_num = (i + 2) as u32; // +1 for 0-index, +1 for header
+
+        match result {
+            Ok(record) => {
+                // Check the field count
+                if record.len() != expected_fields {
+                    println!(
+                        "Row {} is Broken. Reason: Mismatched field count. Expected {}, got {}",
+                        row_num, expected_fields, record.len()
+                    );
+                    broken_rows += 1;
+                    // Don't write this record
+                } else {
+                    // Row is valid, write it to the output file
+                    writer.write_record(&record)?;
+                    valid_rows += 1;
+                }
             }
-            RowStatus::Empty => {
-                println!("Row {} is Empty. Discarding.", row_num);
-            }
-            RowStatus::Broken { row_num, reason } => {
-                println!("Row {} is Broken. Discarding. Reason: {}", row_num, reason);
+            Err(e) => {
+                // This catches "jagged" rows or unquoted special characters
+                println!("Row {} is Broken. Reason: {}", row_num, e);
+                broken_rows += 1;
             }
         }
     }
-    
-    // --- 4. WRITE ---
-    let output_data = fixed_rows.join("\n");
-    
-    // 5. Use `?` instead of .expect()
-    fs::write(&config.output_file, output_data)?;
+
+    // 3. Finalize the write
+    // .flush() ensures all data is written to the file
+    writer.flush()?;
 
     println!("--- Summary ---");
+    println!("Total Valid Rows: {}", valid_rows);
+    println!("Total Broken Rows: {}", broken_rows);
     println!("Processing complete. Fixed file saved to: {}", config.output_file);
 
-    // 6. Return Ok(()) on success
     Ok(())
 }

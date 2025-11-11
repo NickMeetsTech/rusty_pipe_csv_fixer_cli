@@ -1,4 +1,7 @@
-header1,header2,header3
-data1,data2,data3
-data1,,data3
-data1,data2
+first_name,last_name,email
+"Nick","Meets","nick@example.com"
+"Jane","Doe","jane@example.com"
+"John","Smith",john@example.com,extra_field
+"Bob",,bob@example.com
+"Alice","O'Malley","alice@aol.com"
+This,is,a,bad,row
