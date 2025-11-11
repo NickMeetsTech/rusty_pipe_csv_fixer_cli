@@ -1,33 +1,32 @@
-// In src/main.rs
-use std::env; // <-- Add this
+use std::env;
 use std::fs;
+use std::error::Error; // <-- Import the Error trait
+
 mod fixer;
 use fixer::{CsvConfig, RowStatus};
 
-fn main() {
+// 1. Change the signature of main
+fn main() -> Result<(), Box<dyn Error>> {
     // --- 1. GET ARGUMENTS ---
     let args: Vec<String> = env::args().collect();
 
-    // Check if we have at least 2 arguments (plus the program name)
-    if args.len() < 3 {
-        panic!("Not enough arguments! Usage: cargo run -- <input_file> <output_file>");
-    }
-    
-    // We use [1] and [2] because [0] is the program's name
-    // We borrow them (`&`) because `fs::read_to_string` takes a &str
-    let input_filename = &args[1];
-    let output_filename = &args[2];
+    // 2. Use `?` to handle the result from CsvConfig::new
+    let config = CsvConfig::new(&args)?;
 
-    println!("Reading from: {}", input_filename);
-    println!("Writing to: {}", output_filename);
+    println!("Reading from: {}", config.input_file);
+    println!("Writing to: {}", config.output_file);
 
     // --- 2. READ ---
-    let file_contents = fs::read_to_string(input_filename)
-        .expect("Failed to read the input file");
+    // 3. Use `?` instead of .expect()
+    let file_contents = fs::read_to_string(&config.input_file)?;
 
     let mut fixed_rows: Vec<&str> = Vec::new();
 
-    let header = file_contents.lines().next().expect("File is empty");
+    // 4. Handle the header with `?` as well (using .ok_or())
+    let header = file_contents.lines()
+        .next()
+        .ok_or("File is empty, no header row found!")?; // Converts Option to Result
+        
     let expected_fields = header.split(',').count();
     println!("--- Header has {} fields ---", expected_fields);
 
@@ -53,9 +52,12 @@ fn main() {
     // --- 4. WRITE ---
     let output_data = fixed_rows.join("\n");
     
-    fs::write(output_filename, output_data)
-        .expect("Failed to write to output file");
+    // 5. Use `?` instead of .expect()
+    fs::write(&config.output_file, output_data)?;
 
     println!("--- Summary ---");
-    println!("Processing complete. Fixed file saved to: {}", output_filename);
+    println!("Processing complete. Fixed file saved to: {}", config.output_file);
+
+    // 6. Return Ok(()) on success
+    Ok(())
 }

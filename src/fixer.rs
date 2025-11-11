@@ -1,25 +1,28 @@
 // In src/fixer.rs
 
-
-// 1. Define a public struct.
-// We must also make the fields `pub` if we want
-// code in `main.rs` to access them directly.
-#[derive(Debug)]
+#[derive(Debug)] 
 pub struct CsvConfig {
     pub input_file: String,
     pub output_file: String,
-    pub delimiter: char,
+    // We'll hard-code the delimiter for now
+    // pub delimiter: char,
 }
 
-// 2. Create an implementation block for it
 impl CsvConfig {
-    // 3. Create a public associated function (a "constructor")
-    pub fn new(input: String, output: String, delimiter: char) -> CsvConfig {
-        CsvConfig {
+    // Change the signature of `new`
+    pub fn new(args: &[String]) -> Result<CsvConfig, &'static str> {
+        if args.len() < 3 {
+            return Err("Not enough arguments! Usage: <input_file> <output_file>");
+        }
+
+        // We use .clone() to create an owned String from the borrowed &String
+        let input = args[1].clone();
+        let output = args[2].clone();
+
+        Ok(CsvConfig {
             input_file: input,
             output_file: output,
-            delimiter: delimiter,
-        }
+        })
     }
 }
 
